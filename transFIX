@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include <Wire.h> // Library for I2C communication
+#include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 
@@ -26,18 +26,10 @@ void setup() {
 
   // Start the Radio!
   radio.begin();
-
-  // Power setting. Due to likelihood of close proximity of the devices, set as RF24_PA_MIN (RF24_PA_MAX is default)
-  radio.setPALevel(RF24_PA_MIN); // RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX
-
-  // Slower data rate for better range
-  radio.setDataRate(RF24_250KBPS); // RF24_250KBPS, RF24_1MBPS, RF24_2MBPS
-
-  // Number of retries and set tx/rx address
+  radio.setPALevel(RF24_PA_MIN);
+  radio.setDataRate(RF24_250KBPS);
   radio.setRetries(15, 15);
   radio.openWritingPipe(rxAddr);
-
-  // Stop listening, so we can send!
   radio.stopListening();
 
   // Initialize the MPU6050 sensor
@@ -54,9 +46,16 @@ void loop() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  // Construct the message with X and Y acceleration data
-  String str = "XY ";
-  str += String(a.acceleration.x) + "," + String(a.acceleration.y);
+  // Calculate the roll and pitch angles
+  float accX = a.acceleration.x;
+  float accY = a.acceleration.y;
+  float accZ = a.acceleration.z;
+  float roll = atan2(accY, accZ) * RAD_TO_DEG;
+  float pitch = atan2(-accX, sqrt(accY * accY + accZ * accZ)) * RAD_TO_DEG;
+
+  // Construct the message with roll, pitch, acceleration, and gyro data
+  String str = "RPD ";
+  str += String(roll) + "," + String(pitch) + "," + String(accX) + "," + String(accY) + "," + String(accZ) + "," + String(g.gyro.x) + "," + String(g.gyro.y) + "," + String(g.gyro.z);
 
   // Convert the message to a character array
   int str_len = str.length() + 1;

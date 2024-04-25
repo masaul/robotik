@@ -2,8 +2,9 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include <Wire.h> // Library for I2C communication
-#include <MPU6050.h> // Library for MPU6050
+#include <Wire.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
 
 // Set the CE & CSN pins
 #define CE_PIN 9
@@ -16,7 +17,7 @@ const byte rxAddr[6] = "00001";
 RF24 radio(CE_PIN, CSN_PIN);
 
 // Create an instance of the MPU6050 object
-MPU6050 mpu;
+Adafruit_MPU6050 mpu;
 
 void setup() {
   // Start up the Serial connection
@@ -40,18 +41,28 @@ void setup() {
   radio.stopListening();
 
   // Initialize the MPU6050 sensor
-  Wire.begin();
-  mpu.initialize();
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+
+  Serial.println("MPU6050 Found!");
+
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);
 }
 
 void loop() {
   // Read data from the MPU6050 sensor
-  int16_t ax, ay, az, gx, gy, gz;
-  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
 
   // Construct the message with sensor data and timestamp
   String str = "MPU6050 ";
-  str += String(ax) + "," + String(ay) + "," + String(az) + "," + String(gx) + "," + String(gy) + "," + String(gz) + " ";
+  str += String(a.acceleration.x) + "," + String(a.acceleration.y) + "," + String(a.acceleration.z) + "," + String(g.gyro.x) + "," + String(g.gyro.y) + "," + String(g.gyro.z) + " ";
   str += String(millis());
 
   // Convert the message to a character array

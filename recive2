@@ -1,17 +1,19 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include <AFMotor.h>
 
 #define CE_PIN 9
 #define CSN_PIN 10
 const byte rxAddr[6] = "00001";
 RF24 radio(CE_PIN, CSN_PIN);
 
-AF_DCMotor motor1(1); // Motor 1 terhubung ke port M1
-AF_DCMotor motor2(2); // Motor 2 terhubung ke port M2
-AF_DCMotor motor3(3); // Motor 3 terhubung ke port M3
-AF_DCMotor motor4(4); // Motor 4 terhubung ke port M4
+// Definisikan pin-pin untuk driver motor L298N
+const int enablePin1 = 5; // Pin ENA pada driver L298N untuk motor 1 dan 2
+const int enablePin2 = 6; // Pin ENB pada driver L298N untuk motor 3 dan 4
+const int motorPin1 = 8; // Pin IN1 pada driver L298N untuk motor 1
+const int motorPin2 = 7; // Pin IN2 pada driver L298N untuk motor 2
+const int motorPin3 = 4; // Pin IN3 pada driver L298N untuk motor 3
+const int motorPin4 = 3; // Pin IN4 pada driver L298N untuk motor 4
 
 void setup() {
   Serial.begin(9600);
@@ -21,10 +23,17 @@ void setup() {
   radio.openReadingPipe(0, rxAddr);
   radio.startListening();
 
-  motor1.setSpeed(200); // Atur kecepatan motor 1
-  motor2.setSpeed(200); // Atur kecepatan motor 2
-  motor3.setSpeed(200); // Atur kecepatan motor 3
-  motor4.setSpeed(200); // Atur kecepatan motor 4
+  // Inisialisasi pin-pin untuk driver motor
+  pinMode(enablePin1, OUTPUT);
+  pinMode(enablePin2, OUTPUT);
+  pinMode(motorPin1, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(motorPin3, OUTPUT);
+  pinMode(motorPin4, OUTPUT);
+
+  // Atur kecepatan motor
+  analogWrite(enablePin1, 200); // Kecepatan motor 1 dan 2
+  analogWrite(enablePin2, 200); // Kecepatan motor 3 dan 4
 }
 
 void loop() {
@@ -39,30 +48,30 @@ void loop() {
 
     // Logika untuk mengontrol motor berdasarkan data MPU6050
     if (ax > 0.5) { // Jika akselerasi sumbu X positif, putar ke kanan
-      motor1.run(FORWARD);
-      motor2.run(BACKWARD);
-      motor3.run(BACKWARD);
-      motor4.run(FORWARD);
+      digitalWrite(motorPin1, HIGH); // Motor 1 maju
+      digitalWrite(motorPin2, LOW);
+      digitalWrite(motorPin3, LOW); // Motor 3 mundur
+      digitalWrite(motorPin4, HIGH);
     } else if (ax < -0.5) { // Jika akselerasi sumbu X negatif, putar ke kiri
-      motor1.run(BACKWARD);
-      motor2.run(FORWARD);
-      motor3.run(FORWARD);
-      motor4.run(BACKWARD);
+      digitalWrite(motorPin1, LOW); // Motor 1 mundur
+      digitalWrite(motorPin2, HIGH);
+      digitalWrite(motorPin3, HIGH); // Motor 3 maju
+      digitalWrite(motorPin4, LOW);
     } else if (ay > 0.5) { // Jika akselerasi sumbu Y positif, maju
-      motor1.run(FORWARD);
-      motor2.run(FORWARD);
-      motor3.run(FORWARD);
-      motor4.run(FORWARD);
+      digitalWrite(motorPin1, HIGH); // Motor 1 maju
+      digitalWrite(motorPin2, LOW);
+      digitalWrite(motorPin3, HIGH); // Motor 3 maju
+      digitalWrite(motorPin4, LOW);
     } else if (ay < -0.5) { // Jika akselerasi sumbu Y negatif, mundur
-      motor1.run(BACKWARD);
-      motor2.run(BACKWARD);
-      motor3.run(BACKWARD);
-      motor4.run(BACKWARD);
+      digitalWrite(motorPin1, LOW); // Motor 1 mundur
+      digitalWrite(motorPin2, HIGH);
+      digitalWrite(motorPin3, LOW); // Motor 3 mundur
+      digitalWrite(motorPin4, HIGH);
     } else { // Jika tidak ada gerakan, berhenti
-      motor1.run(RELEASE);
-      motor2.run(RELEASE);
-      motor3.run(RELEASE);
-      motor4.run(RELEASE);
+      digitalWrite(motorPin1, LOW); // Motor 1 berhenti
+      digitalWrite(motorPin2, LOW);
+      digitalWrite(motorPin3, LOW); // Motor 3 berhenti
+      digitalWrite(motorPin4, LOW);
     }
   }
 }
